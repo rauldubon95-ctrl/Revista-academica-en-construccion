@@ -12,7 +12,7 @@
     "date-fns": "^3.6.0",
     "gray-matter": "^4.0.3",
     "next": "latest",
-    "next-auth": "^4.24.13",
+    "next-auth": "^5.0.0-beta.30",
     "prisma": "^5.10.2",
     "react": "^19",
     "react-dom": "^19",
