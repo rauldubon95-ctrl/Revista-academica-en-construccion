@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/api";
+import { auth, signIn, signOut } from "@/auth"; // <--- IMPORTANTE: Importamos la seguridad
 
 function groupBy<T extends Record<string, any>>(items: T[], key: string) {
   const out: Record<string, T[]> = {};
@@ -11,10 +12,10 @@ function groupBy<T extends Record<string, any>>(items: T[], key: string) {
   return out;
 }
 
-export default function HomePage() {
+export default async function HomePage() { // <--- Ahora es 'async' para verificar la sesión
+  const session = await auth(); // <--- Verificamos si el usuario ya entró
   const posts: any[] = getAllPosts();
 
-  // Orden simple por fecha (si viene como string, lo dejamos estable; si no hay fecha, queda al final)
   const sorted = [...posts].sort((a, b) => {
     const da = a?.date ? Date.parse(a.date) : 0;
     const db = b?.date ? Date.parse(b.date) : 0;
@@ -23,19 +24,28 @@ export default function HomePage() {
 
   const destacado = sorted[0];
   const recientes = sorted.slice(1, 7);
-
   const porSeccion = groupBy(sorted, "section");
-
-  const numeroVigente =
-    sorted.find((p) => p?.issue)?.issue ?? "Vol. 1, No. 1 (2026)";
+  const numeroVigente = sorted.find((p) => p?.issue)?.issue ?? "Vol. 1, No. 1 (2026)";
 
   return (
     <section className="space-y-12">
       {/* Encabezado editorial */}
       <header className="space-y-4">
-        <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-zinc-700">
-          <span className="font-medium">Número vigente:</span>
-          <span>{numeroVigente}</span>
+        <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-zinc-700">
+            <span className="font-medium">Número vigente:</span>
+            <span>{numeroVigente}</span>
+            </div>
+
+            {/* AQUI MOSTRAMOS QUIÉN ESTÁ CONECTADO (Si lo hay) */}
+            {session?.user && (
+                <div className="text-sm text-zinc-600 flex items-center gap-2">
+                    <span>Hola, {session.user.name}</span>
+                    <form action={async () => { "use server"; await signOut(); }}>
+                        <button className="text-red-500 hover:underline text-xs">(Salir)</button>
+                    </form>
+                </div>
+            )}
         </div>
 
         <h1 className="text-4xl font-semibold tracking-tight">
@@ -48,7 +58,7 @@ export default function HomePage() {
           psicología, ciencias sociales y ciencia política.
         </p>
 
-        <div className="flex flex-wrap gap-3 text-sm">
+        <div className="flex flex-wrap gap-3 text-sm items-center">
           <Link
             className="rounded-lg border px-3 py-2 hover:bg-zinc-50"
             href="/articulos"
@@ -67,6 +77,15 @@ export default function HomePage() {
           >
             Explorar secciones
           </Link>
+
+          {/* AQUI ESTÁ EL BOTÓN DE GOOGLE (Solo aparece si NO has iniciado sesión) */}
+          {!session?.user && (
+            <form action={async () => { "use server"; await signIn("google"); }}>
+                <button className="rounded-lg bg-black text-white px-3 py-2 hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                   <span>Entrar con Google</span>
+                </button>
+            </form>
+          )}
         </div>
       </header>
 
