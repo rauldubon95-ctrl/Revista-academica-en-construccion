@@ -1,47 +1,40 @@
-// src/app/layout.tsx
+import type { Metadata } from "next";
+import { Inter, Merriweather } from "next/font/google"; 
 import "./globals.css";
 
-export const metadata = {
-  title: "Cuadernos Abiertos — Revista interdisciplinaria",
-  description:
-    "Revista abierta al público para publicar sobre tecnología, nutrición, psicología, ciencias sociales y ciencia política.",
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const merriweather = Merriweather({
+  weight: ["300", "400", "700", "900"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-serif",
+});
+
+export const metadata: Metadata = {
+  title: "Cuadernos Abiertos",
+  description: "Revista académica interdisciplinaria",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="es">
-      <body className="min-h-screen bg-white text-zinc-900">
-        <header className="border-b bg-white/80 backdrop-blur">
-          <div className="mx-auto max-w-6xl px-4 py-5 flex items-center justify-between gap-6">
-            <a href="/" className="leading-tight">
-              <div className="text-xl font-semibold tracking-tight">
-                Cuadernos Abiertos
-              </div>
-              <div className="text-sm text-zinc-600">
-                Revista abierta • Rigor académico • Acceso público
-              </div>
-            </a>
-
-            <nav className="flex flex-wrap items-center gap-4 text-sm">
-              <a className="hover:underline" href="/articulos">Artículos</a>
-              <a className="hover:underline" href="/secciones">Secciones</a>
-              <a className="hover:underline" href="/envios">Envíos</a>
-              <a className="hover:underline" href="/equipo-editorial">Equipo editorial</a>
-              <a className="hover:underline" href="/acerca">Acerca</a>
-            </nav>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-6xl px-4 py-10">{children}</main>
-
-        <footer className="border-t">
-          <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-zinc-600 space-y-2">
-            <div>© {new Date().getFullYear()} Cuadernos Abiertos</div>
-            <div>
-              Licencia: (definir, p.ej. Creative Commons) • Contacto: (correo)
+      <body
+        className={`${inter.variable} ${merriweather.variable} bg-stone-100 text-zinc-800 antialiased`}
+      >
+        <div className="min-h-screen flex justify-center py-6 md:py-10 px-4">
+          <main className="w-full max-w-5xl bg-white shadow-xl shadow-stone-200/50 rounded-2xl border border-stone-200 overflow-hidden">
+            <div className="px-6 py-8 md:px-12 md:py-12">
+              {children}
             </div>
-          </div>
-        </footer>
+            <footer className="mt-12 border-t pt-6 text-center text-xs text-zinc-400 pb-2">
+              <p>&copy; {new Date().getFullYear()} Cuadernos Abiertos. ISSN en trámite.</p>
+            </footer>
+          </main>
+        </div>
       </body>
     </html>
   );
