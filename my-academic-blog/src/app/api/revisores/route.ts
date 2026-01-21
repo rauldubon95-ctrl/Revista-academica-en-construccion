@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 export const runtime = "nodejs";
 
 // POST: Generar un nuevo enlace de revisión (Magic Link)
+// (Usado por el Editor desde el Panel)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -23,7 +24,6 @@ export async function POST(req: Request) {
     }
 
     // 2. GENERAR TOKEN ÚNICO (Criptografía segura)
-    // Crea una cadena aleatoria tipo "a1b2-c3d4-..." imposible de adivinar
     const token = randomBytes(16).toString("hex");
 
     // 3. GUARDAR EN BASE DE DATOS
@@ -37,7 +37,6 @@ export async function POST(req: Request) {
     });
 
     // 4. DEVOLVER EL LINK LISTO
-    // Detectamos si estamos en local o en web para armar la URL correcta
     const origin = req.headers.get("origin") || "http://localhost:3000";
     const magicLink = `${origin}/revision/evaluar?token=${token}`;
 
@@ -53,7 +52,8 @@ export async function POST(req: Request) {
   }
 }
 
-// GET: Ver revisiones de un artículo (Para tu panel)
+// GET: Ver revisiones de un artículo 
+// (Usado por el Panel para mostrar el historial)
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const submissionId = url.searchParams.get("submissionId");
@@ -66,4 +66,41 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.json({ ok: true, items: reviews });
+}
+
+// PUT: Guardar la evaluación del experto
+// (Usado por el Revisor desde el formulario público) -> ESTO ES LO NUEVO
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { token, verdict, feedback } = body;
+
+    // Validación básica
+    if (!token || !verdict) {
+      return NextResponse.json({ ok: false, error: "Datos incompletos" }, { status: 400 });
+    }
+
+    // 1. Buscar el token y verificar que exista
+    const review = await prisma.reviewToken.findUnique({ where: { token } });
+    
+    if (!review) {
+      return NextResponse.json({ ok: false, error: "Enlace inválido o caducado" }, { status: 404 });
+    }
+
+    // 2. Guardar la evaluación en la base de datos
+    await prisma.reviewToken.update({
+      where: { id: review.id },
+      data: {
+        status: "completado",
+        verdict,     // 'aceptar', 'cambios', 'rechazar'
+        feedback,    // Comentarios de texto
+      },
+    });
+
+    return NextResponse.json({ ok: true });
+
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
 }

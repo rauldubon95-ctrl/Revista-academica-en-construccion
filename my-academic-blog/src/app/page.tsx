@@ -1,212 +1,158 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/api";
-import { auth, signIn, signOut } from "@/auth"; // <--- IMPORTANTE: Importamos la seguridad
+import { auth, signIn, signOut } from "@/auth";
+
+export const dynamic = "force-dynamic";
 
 function groupBy<T extends Record<string, any>>(items: T[], key: string) {
   const out: Record<string, T[]> = {};
   for (const it of items) {
-    const k = (it?.[key] ?? "Otros") as string;
+    const k = (it?.[key] ?? "Artículos Generales") as string;
     out[k] = out[k] ?? [];
     out[k].push(it);
   }
   return out;
 }
 
-export default async function HomePage() { // <--- Ahora es 'async' para verificar la sesión
-  const session = await auth(); // <--- Verificamos si el usuario ya entró
-  const posts: any[] = getAllPosts();
+export default async function HomePage() {
+  const session = await auth();
+  const posts = getAllPosts();
 
-  const sorted = [...posts].sort((a, b) => {
-    const da = a?.date ? Date.parse(a.date) : 0;
-    const db = b?.date ? Date.parse(b.date) : 0;
-    return db - da;
-  });
+  // 1. Separar la Editorial (Busca un post que tenga type: "editorial" o usa el primero)
+  const editorial = posts.find((p) => p.type === "editorial") || posts[0];
+  
+  // 2. El resto son artículos de investigación
+  const articulos = posts.filter((p) => p.slug !== editorial.slug);
+  
+  // 3. Agrupar por Sección Temática
+  const porSeccion = groupBy(articulos, "section");
 
-  const destacado = sorted[0];
-  const recientes = sorted.slice(1, 7);
-  const porSeccion = groupBy(sorted, "section");
-  const numeroVigente = sorted.find((p) => p?.issue)?.issue ?? "Vol. 1, No. 1 (2026)";
+  const numeroActual = "Vol. 1, No. 1 (Enero - Junio 2026)";
 
   return (
-    <section className="space-y-12">
-      {/* Encabezado editorial */}
-      <header className="space-y-4">
-        <div className="flex items-center justify-between">
-            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-zinc-700">
-            <span className="font-medium">Número vigente:</span>
-            <span>{numeroVigente}</span>
-            </div>
-
-            {/* AQUI MOSTRAMOS QUIÉN ESTÁ CONECTADO (Si lo hay) */}
-            {session?.user && (
-                <div className="text-sm text-zinc-600 flex items-center gap-2">
-                    <span>Hola, {session.user.name}</span>
-                    <form action={async () => { "use server"; await signOut(); }}>
-                        <button className="text-red-500 hover:underline text-xs">(Salir)</button>
-                    </form>
-                </div>
-            )}
-        </div>
-
-        <h1 className="text-4xl font-semibold tracking-tight">
-          Cuadernos Abiertos
-        </h1>
-
-        <p className="text-zinc-600 max-w-3xl">
-          Revista interdisciplinaria de acceso público. Publicamos textos con
-          rigor académico y vocación de claridad en tecnología, nutrición,
-          psicología, ciencias sociales y ciencia política.
-        </p>
-
-        <div className="flex flex-wrap gap-3 text-sm items-center">
-          <Link
-            className="rounded-lg border px-3 py-2 hover:bg-zinc-50"
-            href="/articulos"
-          >
-            Ver artículos
-          </Link>
-          <Link
-            className="rounded-lg border px-3 py-2 hover:bg-zinc-50"
-            href="/envios"
-          >
-            Enviar manuscrito
-          </Link>
-          <Link
-            className="rounded-lg border px-3 py-2 hover:bg-zinc-50"
-            href="/secciones"
-          >
-            Explorar secciones
-          </Link>
-
-          {/* AQUI ESTÁ EL BOTÓN DE GOOGLE (Solo aparece si NO has iniciado sesión) */}
-          {!session?.user && (
-            <form action={async () => { "use server"; await signIn("google"); }}>
-                <button className="rounded-lg bg-black text-white px-3 py-2 hover:bg-zinc-800 transition-colors flex items-center gap-2">
-                   <span>Entrar con Google</span>
-                </button>
-            </form>
-          )}
-        </div>
-      </header>
-
-      {/* Destacado */}
-      {destacado ? (
-        <section className="rounded-2xl border p-6 space-y-3">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-600">
-            <span className="uppercase tracking-wide">Destacado</span>
-            {destacado.section ? (
-              <>
-                <span>•</span>
-                <span className="rounded-full border px-2 py-1">
-                  {destacado.section}
-                </span>
-              </>
-            ) : null}
-            {destacado.type ? (
-              <span className="rounded-full border px-2 py-1">
-                {destacado.type}
-              </span>
-            ) : null}
+    <div className="grid lg:grid-cols-12 gap-12 font-serif text-zinc-900">
+      
+      {/* COLUMNA IZQUIERDA: PORTADA (Ancho 8) */}
+      <div className="lg:col-span-8 space-y-12">
+        
+        {/* ENCABEZADO DEL NÚMERO */}
+        <header className="border-b-4 border-zinc-900 pb-6">
+          <div className="flex justify-between items-end mb-4">
+             <span className="font-sans text-xs font-bold uppercase tracking-widest text-zinc-500">
+               Edición Actual
+             </span>
+             <span className="font-sans text-xs font-bold bg-zinc-100 px-3 py-1 rounded text-zinc-600">
+               {numeroActual}
+             </span>
           </div>
+          <h1 className="text-4xl md:text-5xl font-black italic tracking-tight leading-tight mb-4">
+            {editorial?.title || "Bienvenidos a Cuadernos Abiertos"}
+          </h1>
+          <div className="text-lg text-zinc-600 leading-relaxed font-sans">
+             {editorial?.excerpt}
+          </div>
+          {editorial && (
+             <div className="mt-6">
+               <Link href={`/posts/${editorial.slug}`} className="inline-block bg-zinc-900 text-white font-sans text-sm font-bold px-6 py-3 hover:bg-zinc-700 transition">
+                 Leer Editorial Completa →
+               </Link>
+             </div>
+          )}
+        </header>
 
-          <h2 className="text-2xl font-semibold leading-snug">
-            <Link className="hover:underline" href={`/posts/${destacado.slug}`}>
-              {destacado.title}
-            </Link>
-          </h2>
-
-          {destacado.excerpt ? (
-            <p className="text-zinc-700 max-w-3xl">{destacado.excerpt}</p>
-          ) : null}
-
-          <div className="text-sm text-zinc-500 flex flex-wrap gap-3">
-            {destacado.date ? <span>{destacado.date}</span> : null}
-            {destacado.author?.name ? (
-              <span>
-                Autor/a: <span className="font-medium">{destacado.author.name}</span>
-              </span>
-            ) : null}
+        {/* TABLA DE CONTENIDOS (ARTÍCULOS) */}
+        <section>
+          <h3 className="font-sans text-sm font-bold uppercase tracking-widest text-zinc-400 mb-8 border-b border-zinc-100 pb-2">
+            Sumario de Investigación
+          </h3>
+          
+          <div className="space-y-10">
+            {Object.entries(porSeccion).map(([seccion, items]) => (
+              <div key={seccion}>
+                <h4 className="font-bold text-xl text-zinc-900 mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-purple-600 rounded-full"></span>
+                  {seccion}
+                </h4>
+                <div className="grid gap-6">
+                  {items.map((post) => (
+                    <article key={post.slug} className="group relative pl-4 border-l border-zinc-200 hover:border-purple-400 transition-colors">
+                      <h5 className="text-lg font-bold group-hover:text-purple-700 transition-colors">
+                        <Link href={`/posts/${post.slug}`}>
+                          {post.title}
+                        </Link>
+                      </h5>
+                      <div className="mt-1 font-sans text-sm text-zinc-500 flex gap-2">
+                        <span className="font-semibold text-zinc-700">{post.author.name}</span>
+                        <span>•</span>
+                        <span>{post.date}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
-      ) : null}
 
-      {/* Recientes */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <h3 className="text-xl font-semibold">Recientes</h3>
-          <Link className="text-sm underline" href="/articulos">
-            Ver todo
-          </Link>
-        </div>
+      </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          {recientes.map((p: any) => (
-            <article key={p.slug} className="rounded-xl border p-5">
-              <div className="flex flex-wrap gap-2 text-xs text-zinc-600">
-                {p.section ? (
-                  <span className="rounded-full border px-2 py-1">{p.section}</span>
-                ) : null}
-                {p.type ? (
-                  <span className="rounded-full border px-2 py-1">{p.type}</span>
-                ) : null}
+      {/* COLUMNA DERECHA: SIDEBAR (Ancho 4) */}
+      <aside className="lg:col-span-4 space-y-8 font-sans">
+        
+        {/* CAJA DE USUARIO */}
+        <div className="bg-zinc-50 p-6 rounded-xl border border-zinc-200">
+          <h4 className="font-bold text-sm uppercase tracking-wide text-zinc-500 mb-3">Panel de Usuario</h4>
+          {session?.user ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                 {session.user.image && (
+                   <img src={session.user.image} alt="User" className="w-8 h-8 rounded-full" />
+                 )}
+                 <div>
+                   <p className="text-sm font-bold text-zinc-900">{session.user.name}</p>
+                   <p className="text-xs text-zinc-500 truncate max-w-[150px]">{session.user.email}</p>
+                 </div>
               </div>
-
-              <h4 className="mt-2 text-lg font-semibold leading-snug">
-                <Link className="hover:underline" href={`/posts/${p.slug}`}>
-                  {p.title}
-                </Link>
-              </h4>
-
-              {p.date ? <div className="mt-1 text-sm text-zinc-500">{p.date}</div> : null}
-              {p.excerpt ? <p className="mt-2 text-zinc-700">{p.excerpt}</p> : null}
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* Tabla de contenidos por secciones */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-semibold">Tabla de contenidos</h3>
-
-        <div className="grid gap-4">
-          {Object.entries(porSeccion).map(([sec, items]) => (
-            <div key={sec} className="rounded-xl border p-5">
-              <div className="flex items-center justify-between gap-4">
-                <h4 className="text-lg font-semibold">{sec}</h4>
-                <Link className="text-sm underline" href="/articulos">
-                  Ver sección
-                </Link>
-              </div>
-
-              <ul className="mt-3 space-y-2">
-                {items.slice(0, 4).map((p: any) => (
-                  <li key={p.slug} className="flex flex-col">
-                    <Link className="hover:underline font-medium" href={`/posts/${p.slug}`}>
-                      {p.title}
-                    </Link>
-                    <div className="text-sm text-zinc-500">
-                      {p.author?.name ? <>Autor/a: {p.author.name}</> : null}
-                      {p.date ? <> • {p.date}</> : null}
-                      {p.type ? <> • {p.type}</> : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <Link href="/envios/panel" className="block w-full text-center bg-purple-600 text-white text-sm font-bold py-2 rounded hover:bg-purple-700">
+                 Ir al Panel Editorial
+              </Link>
+              <form action={async () => { "use server"; await signOut(); }}>
+                <button className="w-full text-center text-xs text-red-500 hover:underline mt-2">Cerrar Sesión</button>
+              </form>
             </div>
-          ))}
+          ) : (
+            <div className="space-y-3">
+               <p className="text-sm text-zinc-600">Inicia sesión para enviar artículos o gestionar revisiones.</p>
+               <form action={async () => { "use server"; await signIn("google"); }}>
+                 <button className="w-full bg-zinc-900 text-white text-sm font-bold py-2 rounded hover:bg-zinc-700 flex items-center justify-center gap-2">
+                   <span>Entrar con Google</span>
+                 </button>
+               </form>
+            </div>
+          )}
         </div>
-      </section>
 
-      {/* Nota de indexación (fase inicial) */}
-      <section className="rounded-xl border p-5 text-sm text-zinc-600">
-        <div className="font-medium text-zinc-800">Fase inicial (pre-indexación)</div>
-        <p className="mt-2">
-          En esta etapa, la revista prioriza consistencia editorial, calidad de dictamen y
-          trazabilidad de referencias. La indexación se abordará en una fase posterior,
-          una vez estabilizados los procesos y la periodicidad.
-        </p>
-      </section>
-    </section>
+        {/* LLAMADOS A LA ACCIÓN */}
+        <div className="space-y-4">
+           <Link href="/envios" className="block p-6 bg-blue-50 border border-blue-100 rounded-xl hover:shadow-md transition group">
+              <h5 className="font-bold text-blue-900 mb-1 group-hover:underline">Convocatoria Abierta →</h5>
+              <p className="text-sm text-blue-800">
+                Estamos recibiendo manuscritos para el Vol. 1, No. 2. Consulta las normas de publicación.
+              </p>
+           </Link>
+           
+           <div className="p-6 border border-zinc-200 rounded-xl">
+              <h5 className="font-bold text-zinc-900 mb-2">Sobre la Revista</h5>
+              <p className="text-sm text-zinc-600 mb-4">
+                Cuadernos Abiertos es una publicación semestral arbitrada por pares ciegos.
+              </p>
+              <Link href="/equipo-editorial" className="text-sm font-bold text-zinc-900 underline">
+                Ver Equipo Editorial
+              </Link>
+           </div>
+        </div>
+
+      </aside>
+    </div>
   );
-  }
-  
+}

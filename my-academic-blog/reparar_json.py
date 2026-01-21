@@ -1,0 +1,39 @@
+import json
+
+data = {
+  "private": True,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.11.1",
+    "@prisma/client": "^5.10.2",
+    "classnames": "^2.5.1",
+    "date-fns": "^3.6.0",
+    "gray-matter": "^4.0.3",
+    "next": "latest",
+    "next-auth": "^5.0.0-beta.30",
+    "prisma": "^5.10.2",
+    "react": "^19",
+    "react-dom": "^19",
+    "remark": "^15.0.1",
+    "remark-html": "^16.0.1",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.8",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.2"
+  }
+}
+
+with open("package.json", "w") as f:
+    json.dump(data, f, indent=2)
+    print("✅ package.json ha sido reparado correctamente.")

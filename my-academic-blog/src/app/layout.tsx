@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import Link from "next/link";
 import { SessionProvider } from "next-auth/react";
+import Footer from "@/app/_components/footer"; // <--- AQUÍ ESTÁ LA MAGIA
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -65,43 +66,13 @@ export default function RootLayout({
               </nav>
 
               {/* CONTENIDO */}
-              <div className="flex-1 px-6 py-10 md:px-16 md:py-14">
+              <div className="flex-1 px-6 py-10 md:px-16 md:py-14 min-h-[60vh]">
                 {children}
               </div>
 
-              {/* FOOTER */}
-              <footer className="bg-zinc-50 border-t border-zinc-200 px-6 py-12 md:px-16 text-sm">
-                <div className="grid md:grid-cols-3 gap-8">
-                  <div>
-                    <h3 className="font-serif font-bold text-zinc-900">
-                      Cuadernos Abiertos
-                    </h3>
-                    <p className="text-zinc-500">
-                      Revista académica interdisciplinaria de acceso abierto.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold text-zinc-900">Enlaces</h4>
-                    <ul className="space-y-2 text-zinc-600">
-                      <li><Link href="/normas">Normas</Link></li>
-                      <li><Link href="/etica">Ética</Link></li>
-                      <li><Link href="/equipo-editorial">Equipo editorial</Link></li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold text-zinc-900">Contacto</h4>
-                    <p className="text-zinc-600">
-                      San Salvador, El Salvador<br />
-                      contacto@cuadernosabiertos.org
-                    </p>
-                    <p className="text-zinc-400 text-xs mt-4">
-                      © {new Date().getFullYear()} — ISSN en trámite
-                    </p>
-                  </div>
-                </div>
-              </footer>
+              {/* POWER FOOTER IMPORTADO */}
+              <Footer />
+              
             </main>
           </div>
         </SessionProvider>
