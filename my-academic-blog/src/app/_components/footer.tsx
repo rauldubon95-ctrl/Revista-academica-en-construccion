@@ -1,6 +1,9 @@
 import Container from "@/app/_components/container";
 import { prisma } from "@/lib/prisma";
 
+// ESTA LÍNEA OBLIGA A QUE LOS NÚMEROS SE ACTUALICEN SIEMPRE
+export const dynamic = 'force-dynamic';
+
 export default async function Footer() {
   const year = new Date().getFullYear();
   let stats = { views: 0, downloads: 0, countries: 0 };
