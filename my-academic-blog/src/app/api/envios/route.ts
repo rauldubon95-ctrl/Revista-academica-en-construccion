@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth"; 
-import { put } from "@vercel/blob"; // [NUEVO] Importamos la nube
+import { put } from "@vercel/blob"; 
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -18,7 +18,7 @@ function safeName(name: string) {
 }
 
 // ----------------------------------------------------------------------
-// POST: RECEPCIÓN DE MANUSCRITOS (HÍBRIDO: NUBE + LOCAL)
+// POST: RECEPCIÓN DE MANUSCRITOS (CON SOPORTE NUBE VERCEL BLOB)
 // ----------------------------------------------------------------------
 export async function POST(req: Request) {
   try {
@@ -49,18 +49,16 @@ export async function POST(req: Request) {
       const filename = `${safeName(id)}-${safeName(title).slice(0, 50)}.${ext}`;
 
       // A) MODO PRODUCCIÓN (Vercel Blob)
-      // Si existe el token de Vercel, usamos la nube automáticamente.
       if (process.env.BLOB_READ_WRITE_TOKEN) {
-        console.log("☁️ Subiendo a Vercel Blob Storage...");
+        // console.log("☁️ Subiendo a Vercel Blob Storage...");
         const blob = await put(filename, file, {
           access: 'public',
         });
         fileUrl = blob.url;
       } 
-      // B) MODO DESARROLLO (Local / Codespaces)
-      // Si no hay token, usamos el disco local.
+      // B) MODO DESARROLLO (Local)
       else {
-        console.log("💻 Guardando en disco local (Codespaces)...");
+        // console.log("💻 Guardando en disco local...");
         const uploadDir = path.join(process.cwd(), "public", "uploads");
         await fs.mkdir(uploadDir, { recursive: true });
         
@@ -72,10 +70,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Guardar en Base de Datos (Neon)
+    // 3. Guardar en Base de Datos
     const submission = await prisma.submission.create({
       data: {
-        id,
+        id, // Forzamos el ID personalizado CA-XXXX
         title,
         section,
         type,
@@ -99,14 +97,16 @@ export async function POST(req: Request) {
 }
 
 // ----------------------------------------------------------------------
-// GET: CONSULTA DE ESTADO (SEGURIDAD DE SESIÓN)
+// GET: CONSULTA INTELIGENTE (ID ÚNICO O LISTA POR EMAIL)
 // ----------------------------------------------------------------------
 export async function GET(req: Request) {
   try {
     const session = await auth(); 
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
+    const emailParam = url.searchParams.get("email"); // <--- NUEVO: Buscar por email
 
+    // CASO A: BUSCAR UN ARTÍCULO ESPECÍFICO (Rastreo antiguo)
     if (id) {
       const found = await prisma.submission.findUnique({
         where: { id: id }
@@ -114,15 +114,14 @@ export async function GET(req: Request) {
 
       if (!found) return NextResponse.json({ ok: false, error: "No encontrado." }, { status: 404 });
 
-      // Verificamos permisos: Dueño o Admin
+      // Verificamos permisos
       const isOwner = session?.user?.email === found.email;
-      // Puedes definir tu email como admin aquí o en variables de entorno
       const isAdmin = session?.user?.email === "raul.dubon@ues.edu.sv"; 
 
       if (isOwner || isAdmin) {
          return NextResponse.json({ ok: true, item: found });
       } else {
-        // Vista pública restringida
+        // Vista pública restringida (Solo datos básicos)
         return NextResponse.json({
           ok: true,
           item: {
@@ -135,9 +134,22 @@ export async function GET(req: Request) {
       }
     }
 
-    // Para ver LISTA COMPLETA (Solo admins logueados)
-    if (!session?.user) {
-       return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
+    // CASO B: BUSCAR TODOS LOS ARTÍCULOS DE UN AUTOR (NUEVO DASHBOARD)
+    if (emailParam) {
+        // Buscamos todo lo que coincida con el email
+        const submissions = await prisma.submission.findMany({
+            where: { email: { equals: emailParam, mode: 'insensitive' } },
+            orderBy: { createdAt: 'desc' }
+        });
+        return NextResponse.json({ ok: true, items: submissions });
+    }
+
+    // CASO C: LISTA COMPLETA (SOLO ADMINS)
+    // Si no hay ID ni Email, asumimos que es el administrador queriendo ver todo
+    const isAdmin = session?.user?.email === "raul.dubon@ues.edu.sv"; // Ajusta tu email admin
+    
+    if (!isAdmin) {
+       return NextResponse.json({ ok: false, error: "No autorizado para ver todo el listado." }, { status: 401 });
     }
 
     const items = await prisma.submission.findMany({
@@ -147,6 +159,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, items });
     
   } catch (error) {
+    console.error("Error en GET:", error);
     return NextResponse.json({ ok: false, items: [] }, { status: 500 });
   }
 }
