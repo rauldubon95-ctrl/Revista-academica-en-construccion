@@ -46,6 +46,7 @@ export default function EnviosPage() {
     try {
       const form = new FormData(e.currentTarget);
       
+      // Inyectamos el email de la sesión por seguridad (Backend)
       if (session?.user?.email) {
         form.set("email", session.user.email);
       }
@@ -78,12 +79,12 @@ export default function EnviosPage() {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-zinc-400 gap-4">
              <div className="w-8 h-8 border-4 border-zinc-300 border-t-zinc-900 rounded-full animate-spin"></div>
-             <p className="text-sm tracking-widest uppercase">Verificando Credenciales...</p>
+             <p className="text-sm tracking-widest uppercase">Cargando...</p>
         </div>
     );
   }
 
-  // 2. VISTA PARA NO AUTENTICADOS (EL "LOBBY" DE DOBLE ENTRADA)
+  // 2. VISTA PARA NO AUTENTICADOS (LOBBY)
   if (status === "unauthenticated") {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 animate-in fade-in zoom-in duration-500 py-12">
@@ -139,14 +140,14 @@ export default function EnviosPage() {
     );
   }
 
-  // 3. PROTECCIÓN DE SESIÓN
+  // 3. PROTECCIÓN
   if (!session) return null; 
 
-  // 4. VISTA: AUTENTICADO (DASHBOARD COMPLETO)
+  // 4. VISTA: AUTENTICADO
   return (
     <div className="animate-in fade-in duration-500 font-sans pb-20">
       
-      {/* 1. ENCABEZADO */}
+      {/* HEADER */}
       <header className="mb-10 border-b border-zinc-200 pb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
@@ -154,21 +155,21 @@ export default function EnviosPage() {
                   Centro de Gestión
                 </h1>
                 <p className="mt-2 text-zinc-600">
-                  Bienvenido, <span className="font-semibold text-zinc-900">{session.user?.name}</span>. Gestione sus contribuciones científicas.
+                  Bienvenido, <span className="font-semibold text-zinc-900">{session.user?.name}</span>.
                 </p>
             </div>
             
             <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-zinc-200 shadow-sm">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">Sistema Operativo</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">Sistema Online</span>
             </div>
         </div>
       </header>
 
-      {/* 2. BARRA DE NAVEGACIÓN INTELIGENTE */}
+      {/* MENÚ */}
       <div className="grid md:grid-cols-3 gap-6 mb-12">
         
-        {/* Tarjeta 1: Nuevo Envío */}
+        {/* Nuevo Envío */}
         <div className="relative overflow-hidden rounded-xl border-2 border-zinc-900 bg-zinc-900 p-5 text-white shadow-xl cursor-default">
           <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
           <div className="flex items-center gap-3 relative z-10">
@@ -178,7 +179,7 @@ export default function EnviosPage() {
           <p className="text-sm text-zinc-400 mt-2 relative z-10">Complete el formulario a continuación para iniciar un proceso editorial.</p>
         </div>
 
-        {/* Tarjeta 2: MIS ENVÍOS */}
+        {/* Mis Envíos */}
         <Link 
           href="/envios/seguimiento" 
           className="group relative rounded-xl border border-zinc-200 bg-white p-5 text-zinc-600 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300"
@@ -193,7 +194,7 @@ export default function EnviosPage() {
           <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500">→</div>
         </Link>
 
-        {/* Tarjeta 3: Panel Editorial */}
+        {/* Panel Editorial */}
         <Link 
           href="/envios/panel" 
           className="group relative rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-zinc-500 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 hover:shadow-md transition-all"
@@ -211,7 +212,7 @@ export default function EnviosPage() {
 
       <div className="grid lg:grid-cols-12 gap-10">
         
-        {/* 3. BARRA LATERAL */}
+        {/* BARRA LATERAL */}
         <aside className="lg:col-span-4 space-y-6 order-2 lg:order-1">
           <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm sticky top-24">
             <h3 className="font-serif font-bold text-zinc-900 mb-6 flex items-center gap-2 border-b pb-4">
@@ -246,7 +247,7 @@ export default function EnviosPage() {
           </div>
         </aside>
 
-        {/* 4. FORMULARIO PRINCIPAL */}
+        {/* FORMULARIO PRINCIPAL */}
         <div className="lg:col-span-8 order-1 lg:order-2">
           <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-1">
             
@@ -328,7 +329,7 @@ export default function EnviosPage() {
 
               <div className="border-t border-zinc-100 my-8"></div>
 
-              {/* Sección: Autoría (Pre-llenada) */}
+              {/* Sección: Autoría (SIN PRE-LLENADO DE NOMBRE) */}
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-6">
                     <span className="bg-zinc-900 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">2</span>
@@ -341,9 +342,8 @@ export default function EnviosPage() {
                     <input
                       name="authors"
                       required
-                      className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-black focus:ring-black bg-zinc-50"
+                      className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-black focus:ring-black bg-white"
                       placeholder="Apellido, Nombre; Apellido, Nombre..."
-                      defaultValue={session?.user?.name || ""}
                     />
                   </div>
 
@@ -352,15 +352,13 @@ export default function EnviosPage() {
                     <input
                       name="correspondingAuthor"
                       required
-                      readOnly
-                      className="w-full rounded-lg border border-zinc-200 px-4 py-3 bg-zinc-100 text-zinc-500 cursor-not-allowed"
-                      defaultValue={session?.user?.name || ""}
-                      title="No editable: vinculado a la cuenta actual"
+                      className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-black focus:ring-black bg-white"
+                      placeholder="Nombre del responsable"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Correo verificado</label>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Correo verificado (Sesión)</label>
                     <input
                       name="email"
                       type="email"
